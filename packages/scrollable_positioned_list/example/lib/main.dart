@@ -81,6 +81,8 @@ class _ScrollablePositionedListPageState
 
   @override
   Widget build(BuildContext context) => Material(
+
+    /*todo OrientationBuilder 根据宽高 来决定列表的的 滚动方向 可以用来做根据手机自动旋转展示不同的样式*/
         child: OrientationBuilder(
           builder: (context, orientation) => Column(
             children: <Widget>[

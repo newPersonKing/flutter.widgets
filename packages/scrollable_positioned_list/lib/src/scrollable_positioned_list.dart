@@ -167,6 +167,7 @@ class ScrollablePositionedList extends StatefulWidget {
 
 /// Controller to jump or scroll to a particular position in a
 /// [ScrollablePositionedList].
+/// 只是持有 _ScrollablePositionedListState 所有的方法 调用的是state 中对应的方法
 class ItemScrollController {
   /// Whether any ScrollablePositionedList objects are attached this object.
   ///
@@ -263,13 +264,18 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
   @override
   void initState() {
     super.initState();
+    /*todo 这里为什么返回 ItemPosition*/
     ItemPosition? initialPosition = PageStorage.of(context)!.readState(context);
+    /*初始滑动位置*/
     primary.target = initialPosition?.index ?? widget.initialScrollIndex;
+    /*定位之后的偏移量*/
     primary.alignment =
         initialPosition?.itemLeadingEdge ?? widget.initialAlignment;
+    /*防止越界*/
     if (widget.itemCount > 0 && primary.target > widget.itemCount - 1) {
       primary.target = widget.itemCount - 1;
     }
+    /*绑定*/
     widget.itemScrollController?._attach(this);
     primary.itemPositionsNotifier.itemPositions.addListener(_updatePositions);
     secondary.itemPositionsNotifier.itemPositions.addListener(_updatePositions);
@@ -421,6 +427,7 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
     if (index > widget.itemCount - 1) {
       index = widget.itemCount - 1;
     }
+    /*_isTransitioning 默认是false*/
     if (_isTransitioning) {
       _stopScroll(canceled: true);
       SchedulerBinding.instance!.addPostFrameCallback((_) {
@@ -450,12 +457,15 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
     Curve curve = Curves.linear,
     required List<double> opacityAnimationWeights,
   }) async {
+    /*确定是往哪个方向滑动*/
     final direction = index > primary.target ? 1 : -1;
+
     final itemPosition = primary.itemPositionsNotifier.itemPositions.value
         .firstWhereOrNull(
             (ItemPosition itemPosition) => itemPosition.index == index);
     if (itemPosition != null) {
       // Scroll directly.
+      /*如果 有记录 直接滑动*/
       final localScrollAmount = itemPosition.itemLeadingEdge *
           primary.scrollController.position.viewportDimension;
       await primary.scrollController.animateTo(
@@ -469,22 +479,29 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
           primary.scrollController.position.viewportDimension;
       final startCompleter = Completer<void>();
       final endCompleter = Completer<void>();
+      /*当系统 挂载的时候 会 回调这个方法*/
       startAnimationCallback = () {
         SchedulerBinding.instance!.addPostFrameCallback((_) {
           startAnimationCallback = () {};
+          print("cccccccccccc====startAnimationCallback");
 
+          /*生成一个序列opacity动画 */
           opacity.parent = _opacityAnimation(opacityAnimationWeights).animate(
               AnimationController(vsync: this, duration: duration)..forward());
+          /*当前 _screenScrollCount 里面 没有包含的item 所以 直接滑动 _screenScrollCount 的距离  */
+          /*secondary 是 直接跳转*/
           secondary.scrollController.jumpTo(-direction *
               (_screenScrollCount *
                       primary.scrollController.position.viewportDimension -
                   alignment *
                       secondary.scrollController.position.viewportDimension));
 
+          /*primary 动画滑动*/
           startCompleter.complete(primary.scrollController.animateTo(
               primary.scrollController.offset + direction * scrollAmount,
               duration: duration,
               curve: curve));
+
           endCompleter.complete(secondary.scrollController
               .animateTo(0, duration: duration, curve: curve));
         });
@@ -494,6 +511,8 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
         // assert(!_isTransitioning);
         secondary.target = index;
         secondary.alignment = alignment;
+        /*_isTransitioning 为true 那么 两个list 都会显示出来*/
+        /*todo _isTransitioning变成true 会触发startAnimationCallback执行  */
         _isTransitioning = true;
       });
       await Future.wait<void>([startCompleter.future, endCompleter.future]);

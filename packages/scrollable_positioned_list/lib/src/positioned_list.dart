@@ -165,6 +165,8 @@ class _PositionedListState extends State<PositionedList> {
           physics: widget.physics,
           semanticChildCount: widget.semanticChildCount ?? widget.itemCount,
           slivers: <Widget>[
+
+            /*创建 0 - positionedIndex 的item*/
             if (widget.positionedIndex > 0)
               SliverPadding(
                 padding: _leadingSliverPadding,
@@ -183,6 +185,7 @@ class _PositionedListState extends State<PositionedList> {
                   ),
                 ),
               ),
+            /*todo 貌似创建的是 positionedIndex item*/
             SliverPadding(
               key: _centerKey,
               padding: _centerSliverPadding,
@@ -199,6 +202,7 @@ class _PositionedListState extends State<PositionedList> {
                 ),
               ),
             ),
+            /*创建 positionedIndex - itemCount 的item*/
             if (widget.positionedIndex >= 0 &&
                 widget.positionedIndex < widget.itemCount - 1)
               SliverPadding(
@@ -293,9 +297,11 @@ class _PositionedListState extends State<PositionedList> {
               : widget.padding?.copyWith(left: 0) ?? EdgeInsets.all(0);
 
   void _schedulePositionNotificationUpdate() {
+    // print("ccccccccccc===updateScheduled==$updateScheduled");
     if (!updateScheduled) {
       updateScheduled = true;
       SchedulerBinding.instance!.addPostFrameCallback((_) {
+        // print("cccccc===registeredElements===${registeredElements.value?.length}");
         if (registeredElements.value == null) {
           updateScheduled = false;
           return;
@@ -304,13 +310,30 @@ class _PositionedListState extends State<PositionedList> {
         RenderViewport? viewport;
         for (var element in registeredElements.value!) {
           final RenderBox box = element.renderObject as RenderBox;
+
+          /*todo 一般滑动列表窗口 会实现RenderAbstractViewport 所以这里的作用就是寻找列表窗口 */
           viewport ??= RenderAbstractViewport.of(box) as RenderViewport?;
+          /*todo  这里的key 在生成widget的时候创建  每个item 外层 包了一层 RegisteredElementWidget*/
+          /*todo registeredElements 中的item 是累加的*/
           final ValueKey<int> key = element.widget.key as ValueKey<int>;
           if (widget.scrollDirection == Axis.vertical) {
+
+            /*todo 获取RenderBox 在列表中的距离列表顶部的高度 换种说法 就是这个item之前的所有item的总和*/
             final reveal = viewport!.getOffsetToReveal(box, 0).offset;
+
+            /*todo (viewport.anchor * viewport.size.height) 计算的是 滑动的锚点 比如 是滑动到顶部 中心 还是底部*/
+            /*todo （viewport.offset.pixels）计算的已经滑动的偏移量*/
+            // print("ccccccccccc==reveal=====${reveal}");
+            // print("ccccccccccc==viewport.offset.pixels=====${viewport.offset.pixels}");
+            // print("ccccccccccc==viewport.anchor=====${viewport.anchor}");
+            /*???????????? todo 这里是应该 + （ viewport.anchor * viewport.size.height） 吗？？ */
             final itemOffset = reveal -
                 viewport.offset.pixels +
                 viewport.anchor * viewport.size.height;
+            // print("ccccccccccc==itemOffset=====${itemOffset}===${viewport.size.height}");
+            /*scrollController.position 只有在scrollController 只绑定一个滑动窗口的时候生效*/
+            /*scrollController.position.viewportDimension 应该是列表窗口的高度*/
+            // print("ccccccccccc==scrollController.position.viewportDimension=====${scrollController.position.viewportDimension}");
             positions.add(ItemPosition(
                 index: key.value,
                 itemLeadingEdge: itemOffset.round() /
@@ -320,6 +343,7 @@ class _PositionedListState extends State<PositionedList> {
           } else {
             final itemOffset =
                 box.localToGlobal(Offset.zero, ancestor: viewport).dx;
+            // print("cccccccccc===landScape==itemOffset===${itemOffset}");
             positions.add(ItemPosition(
                 index: key.value,
                 itemLeadingEdge: (widget.reverse
@@ -335,10 +359,12 @@ class _PositionedListState extends State<PositionedList> {
                         .round() /
                     scrollController.position.viewportDimension));
           }
+          // print("##########################################################");
         }
         widget.itemPositionsNotifier?.itemPositions.value = positions;
         updateScheduled = false;
       });
+      // print("==============================================================");
     }
   }
 }
