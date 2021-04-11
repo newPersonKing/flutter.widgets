@@ -63,7 +63,7 @@ class _ScrollablePositionedListPageState
   bool reversed = false;
 
   /// The alignment to be used next time the user scrolls or jumps to an item.
-  double alignment = 0;
+  double alignment = 0.5;
 
   @override
   void initState() {

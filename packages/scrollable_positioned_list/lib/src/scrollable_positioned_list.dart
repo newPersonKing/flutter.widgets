@@ -468,12 +468,15 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
       /*如果 有记录 直接滑动*/
       final localScrollAmount = itemPosition.itemLeadingEdge *
           primary.scrollController.position.viewportDimension;
+
+      /*todo  如果直接滑动 想让item 中心位于中心线上 可以在 位移值后面  追加  + （itemPosition.itemLeadingEdge - itemPosition.itemTrailingEdge）* primary.scrollController.position.viewportDimension*/
       await primary.scrollController.animateTo(
           primary.scrollController.offset +
               localScrollAmount -
-              alignment * primary.scrollController.position.viewportDimension,
+              alignment * primary.scrollController.position.viewportDimension ,
           duration: duration,
           curve: curve);
+      print("cccccccccc====${itemPosition.itemLeadingEdge - itemPosition.itemTrailingEdge}");
     } else {
       final scrollAmount = _screenScrollCount *
           primary.scrollController.position.viewportDimension;
@@ -489,19 +492,20 @@ class _ScrollablePositionedListState extends State<ScrollablePositionedList>
           opacity.parent = _opacityAnimation(opacityAnimationWeights).animate(
               AnimationController(vsync: this, duration: duration)..forward());
           /*当前 _screenScrollCount 里面 没有包含的item 所以 直接滑动 _screenScrollCount 的距离  */
-          /*secondary 是 直接跳转*/
+          /*secondary 滑动之前 item 已经达到想要的位置了 这里的移动就是为了做动画效果  */
           secondary.scrollController.jumpTo(-direction *
               (_screenScrollCount *
                       primary.scrollController.position.viewportDimension -
                   alignment *
                       secondary.scrollController.position.viewportDimension));
 
-          /*primary 动画滑动*/
+          /*primary 滑动了_screenScrollCount 屏幕的距离  */
           startCompleter.complete(primary.scrollController.animateTo(
               primary.scrollController.offset + direction * scrollAmount,
               duration: duration,
               curve: curve));
 
+          /*todo 可以修改animateTo 的第一个值 来影响 定位item的中心线的位置*/
           endCompleter.complete(secondary.scrollController
               .animateTo(0, duration: duration, curve: curve));
         });
